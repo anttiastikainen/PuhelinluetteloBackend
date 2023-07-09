@@ -5,6 +5,7 @@ const cors = require('cors')
 
 app.use(express.json())
 app.use(cors())
+app.use(express.static('build'))
 
 //get rid of unecessary information of :url
 morgan.token('pathname', (request) => {
