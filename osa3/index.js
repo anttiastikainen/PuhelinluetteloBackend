@@ -1,8 +1,10 @@
 const express = require('express')
 const morgan = require('morgan')
 const app = express()
+const cors = require('cors')
 
 app.use(express.json())
+app.use(cors())
 
 //get rid of unecessary information of :url
 morgan.token('pathname', (request) => {
@@ -35,7 +37,7 @@ let persons = [
         number: "12-45-233445"
     } , {
         id: 4,
-        name: "Mary Poppendick",
+        name: "Mary Poppendieck",
         number: "39-23-6423122"
     }
 ]
@@ -56,7 +58,7 @@ app.get('/info', morgan(tinyFormat), (request, response) => {
     response.end(infoResponse()
     )})
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
