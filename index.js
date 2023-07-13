@@ -1,7 +1,10 @@
+require('dotenv').config()
+
 const express = require('express')
 const morgan = require('morgan')
 const app = express()
 const cors = require('cors')
+const Person = require('./models/person')
 
 app.use(express.json())
 app.use(cors())
@@ -13,38 +16,20 @@ morgan.token('pathname', (request) => {
 })
 
 morgan.token('body', (request) => {
-        return JSON.stringify(request.body);
+    return JSON.stringify(request.body);
 })
 
 morgan.token('path', (request) => {
-  return request.path;
+    return request.path;
 });
 
 const tinyFormat = ':method :path :status :res[content-length] - :response-time ms'
 const postFormat = ':method :path :status :res[content-length] - :response-time ms :body'
 
-let persons = [
-    {
-        id: 1,
-        name: "Arto Hellas",
-        number: "040-123456"
-    }, {
-        id: 2,
-        name: "Ada Lovelace",
-        number: "29-44-5323523"
-    }, {
-        id: 3,
-        name: "Dan Abramov",
-        number: "12-45-233445"
-    } , {
-        id: 4,
-        name: "Mary Poppendieck",
-        number: "39-23-6423122"
-    }
-]
-
 app.get('/api/persons', morgan(tinyFormat), (request, response) => {
-    response.json(persons)
+    Person.find({}).then(persons => {
+        response.json(persons)
+    })
 })
 
 const infoResponse = () => {
@@ -59,20 +44,16 @@ app.get('/info', morgan(tinyFormat), (request, response) => {
     response.end(infoResponse()
     )})
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT 
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
 
 app.get('/api/persons/:id', morgan(tinyFormat),(request, response) => {
-    const id = Number(request.params.id)
-    const person = persons.find(person => person.id === id)
-
-    if(person) {
+    Person.findById(request.params.id).then(person => {
         response.json(person)
-    } else {
-        response.status(404).end()
-    }
+    })
 })
 
 app.delete('/api/persons/:id',morgan(tinyFormat), (request, response) => {
@@ -83,6 +64,7 @@ app.delete('/api/persons/:id',morgan(tinyFormat), (request, response) => {
 
 })
 
+// need to redo this since not using hardcoded persons anymore
 const isDuplicateName = (name) => {
     for(let i = 0;i<persons.length;i++)
     {
@@ -99,28 +81,31 @@ const generateId = () => {
 app.post('/api/persons',morgan(postFormat), (request, response) => {
     const body = request.body
 
-    if(!body.name) {
+    if(body.name === undefined) {
         return response.status(400).json({
             error: 'name missing'
         })
     }
 
-    if(!body.number) {
+    if(body.number === undefined) {
         return response.status(400).json({
             error: 'number missing'
         })
     } 
-
+/*
     if(isDuplicateName(body.name)) {
         return response.status(400).json({
             error: 'name must be unique'
         })
-    } 
-    const person = {
+    }*/ 
+    const person = new Person( {
         name: body.name,
         number: body.number,
         id: generateId(),
-    }
-    response.json(person)
+    })
+
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 })
 
