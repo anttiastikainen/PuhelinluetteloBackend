@@ -33,16 +33,25 @@ app.get('/api/persons', morgan(tinyFormat), (request, response) => {
 })
 
 const infoResponse = () => {
-    const infoCount = persons.length
-    const currentTime = new Date()
-
-    return(
-        `Phonebook has info for ${infoCount} people\n\n${currentTime}`)
+    return Person.countDocuments({})
+    .then(infoCount => {
+        const currentTime = new Date();
+        return `Phonebook has info for ${infoCount} people\n\n${currentTime}`
+    })
+    .catch(error => {
+       throw new Error( 'Error counting persons')
+    })
 }
 
-app.get('/info', morgan(tinyFormat), (request, response) => {
-    response.end(infoResponse()
-    )})
+app.get('/info', morgan(tinyFormat), (request, response, next) => {
+   infoResponse()
+    .then(info => {
+        response.end(info)
+    })
+    .catch(error => {
+        next(error)
+    })
+})
 
 app.get('/api/persons/:id', morgan(tinyFormat),(request, response, next) => {
     Person.findById(request.params.id)
@@ -65,6 +74,21 @@ app.delete('/api/persons/:id',morgan(tinyFormat), (request, response, next) => {
 
 })
 
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+
+    const person = {
+        name: body.name,
+        number: body.number,
+    }
+
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+        .then(updatedPerson => {
+            response.json(updatedPerson)
+        })
+        .catch(error => next(error))
+})
+
 /*
 // need to redo this since not using hardcoded persons anymore
 const isDuplicateName = (name) => {
@@ -76,11 +100,13 @@ const isDuplicateName = (name) => {
 
 }
 */
+
+// generating id not necessary anymore
 const generateId = () => {
     return Math.floor(Math.random() *100000 )
 }
 
-app.post('/api/persons',morgan(postFormat), (request, response) => {
+app.post('/api/persons',morgan(postFormat), (request, response,next) => {
     const body = request.body
 
     if(body.name === undefined) {
